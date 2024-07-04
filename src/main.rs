@@ -1,4 +1,4 @@
-use async_utility::futures_util::StreamExt;
+use chrono::{DateTime, Utc};
 use gtk4::gio::{ApplicationFlags, SimpleAction};
 use gtk4::glib::{self, clone};
 use gtk4::prelude::*;
@@ -26,6 +26,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn build_ui(app: &Application) {
     let window = ApplicationWindow::new(app);
+    let provider = gtk4::CssProvider::new();
+    provider.load_from_data(
+        "
+        .author {
+            font-weight: bold;
+            color: #1565C0;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #757575;
+        }
+        .content {
+            font-size: 14px;
+        }
+        ",
+    );
+    gtk4::style_context_add_provider_for_display(
+        &gtk4::gdk::Display::default().expect("Could not connect to a display."),
+        &provider,
+        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
     window.set_title(Some("Kapestr"));
     window.set_default_size(800, 600);
 
@@ -199,13 +220,48 @@ fn fetch_posts(state: Arc<AppState>, tx: mpsc::Sender<Event>) {
 fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
     glib::MainContext::default().spawn_local(async move {
         while let Some(event) = rx.recv().await {
-            let row = GtkBox::new(Orientation::Vertical, 5);
-            let author = Label::new(Some(&format!("Author: {}", event.pubkey)));
+            let row = GtkBox::new(Orientation::Vertical, 10);
+            row.set_margin_start(10);
+            row.set_margin_end(10);
+            row.set_margin_top(10);
+            row.set_margin_bottom(10);
+
+            // Format author's public key
+            let author_pubkey = format!(
+                "{}...{}",
+                &event.pubkey.to_string()[..8],
+                &event.pubkey.to_string()[56..]
+            );
+            let author = Label::new(Some(&format!("Author: {}", author_pubkey)));
+            author.set_halign(gtk4::Align::Start);
+            author.add_css_class("author");
+
+            // Add timestamp
+            let timestamp = DateTime::<Utc>::from_timestamp(event.created_at.as_u64() as i64, 0)
+                .unwrap_or_else(|| Utc::now());
+            let formatted_time = timestamp.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+            let time_label = Label::new(Some(&formatted_time));
+            time_label.set_halign(gtk4::Align::Start);
+            time_label.add_css_class("timestamp");
+
+            // Content
             let content = Label::new(Some(&event.content));
             content.set_wrap(true);
+            content.set_halign(gtk4::Align::Start);
+            content.set_margin_top(5);
+            content.set_margin_bottom(5);
+            content.add_css_class("content");
+
+            // Add a separator
+            let separator = gtk4::Separator::new(Orientation::Horizontal);
+            separator.set_margin_top(10);
+
             row.append(&author);
+            row.append(&time_label);
             row.append(&content);
-            posts_list.insert(&row, -1);
+            row.append(&separator);
+
+            posts_list.insert(&row, 0); // Insert at the top of the list
         }
     });
 }
