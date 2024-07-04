@@ -218,6 +218,8 @@ fn fetch_posts(state: Arc<AppState>, tx: mpsc::Sender<Event>) {
     });
 }
 
+use gtk4::gdk_pixbuf::PixbufLoader;
+
 fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
     glib::MainContext::default().spawn_local(async move {
         while let Some(event) = rx.recv().await {
@@ -278,19 +280,24 @@ fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
                 for image_url in images {
                     println!("\nIMAGE URL IS: {}", &image_url);
                     let result = reqwest::get(&image_url).await;
-                    let mut file = std::fs::File::create(concat!("test", ".jpg")).unwrap();
-                    let _ = match result {
-                        Ok(v) => std::io::copy(&mut v.bytes().await.unwrap().as_ref(), &mut file),
-                        Err(e) => continue,
-                    };
-
-                    let pixbuf = Pixbuf::from_file(concat!("test", ".jpg")).unwrap();
-                    let image = Image::from_pixbuf(Some(&pixbuf));
-                    image.set_size_request(200, 200);
-                    image.set_halign(gtk4::Align::Start);
-                    image.set_margin_top(2);
-                    image.set_margin_bottom(2);
-                    row.append(&image);
+                    match result {
+                        Ok(response) => {
+                            if let Ok(bytes) = response.bytes().await {
+                                let loader = PixbufLoader::new();
+                                if loader.write(&bytes).is_ok() && loader.close().is_ok() {
+                                    if let Some(pixbuf) = loader.pixbuf() {
+                                        let image = Image::from_pixbuf(Some(&pixbuf));
+                                        image.set_size_request(200, 200);
+                                        image.set_halign(gtk4::Align::Start);
+                                        image.set_margin_top(2);
+                                        image.set_margin_bottom(2);
+                                        row.append(&image);
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("Failed to download image: {}", e),
+                    }
                 }
             }
             posts_list.insert(&row, 0); // Insert at the top of the list
