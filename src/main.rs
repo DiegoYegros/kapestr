@@ -1,13 +1,15 @@
 use chrono::{DateTime, Utc};
+use gtk4::gdk_pixbuf::Pixbuf;
 use gtk4::gio::{ApplicationFlags, SimpleAction};
 use gtk4::glib::{self, clone};
-use gtk4::prelude::*;
+use gtk4::{prelude::*, Image};
 use gtk4::{
     Application, ApplicationWindow, Box as GtkBox, Button, Entry, Label, ListBox, MenuButton,
     Orientation, ScrolledWindow,
 };
 use nostr::prelude::*;
 use nostr_sdk::prelude::*;
+use regex::Regex;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
@@ -129,7 +131,7 @@ fn build_menu(menu_button: &MenuButton, app: &Application, state: Arc<AppState>)
     app.add_action(&login_action);
     app.add_action(&signin_action);
 
-    menu.append(Some("Login"), Some("app.login"));
+    menu.append(Some("Log In"), Some("app.login"));
     menu.append(Some("Sign In"), Some("app.signin"));
 
     menu_button.set_menu_model(Some(&menu));
@@ -145,7 +147,6 @@ fn show_login_dialog(state: Arc<AppState>) {
             ("Cancel", gtk4::ResponseType::Cancel),
         ],
     );
-
     let content_area = dialog.content_area();
     let entry = Entry::new();
     entry.set_placeholder_text(Some("Enter your private key"));
@@ -220,6 +221,16 @@ fn fetch_posts(state: Arc<AppState>, tx: mpsc::Sender<Event>) {
 fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
     glib::MainContext::default().spawn_local(async move {
         while let Some(event) = rx.recv().await {
+            let mut is_reply = false;
+            for tag in &event.tags {
+                if tag.is_reply() {
+                    is_reply = true;
+                }
+            }
+            if is_reply {
+                continue;
+            }
+            println!("{}\n\n", &event.as_json());
             let row = GtkBox::new(Orientation::Vertical, 10);
             row.set_margin_start(10);
             row.set_margin_end(10);
@@ -245,7 +256,8 @@ fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
             time_label.add_css_class("timestamp");
 
             // Content
-            let content = Label::new(Some(&event.content));
+            let (urls, new_content) = extract_and_remove_image_urls(&event.content());
+            let content = Label::new(Some(&new_content));
             content.set_wrap(true);
             content.set_halign(gtk4::Align::Start);
             content.set_margin_top(5);
@@ -261,6 +273,26 @@ fn receive_posts(posts_list: ListBox, mut rx: mpsc::Receiver<Event>) {
             row.append(&content);
             row.append(&separator);
 
+            // Add images
+            if let Some(images) = get_images_from_event(&event, urls) {
+                for image_url in images {
+                    println!("\nIMAGE URL IS: {}", &image_url);
+                    let result = reqwest::get(&image_url).await;
+                    let mut file = std::fs::File::create(concat!("test", ".jpg")).unwrap();
+                    let _ = match result {
+                        Ok(v) => std::io::copy(&mut v.bytes().await.unwrap().as_ref(), &mut file),
+                        Err(e) => continue,
+                    };
+
+                    let pixbuf = Pixbuf::from_file(concat!("test", ".jpg")).unwrap();
+                    let image = Image::from_pixbuf(Some(&pixbuf));
+                    image.set_size_request(200, 200);
+                    image.set_halign(gtk4::Align::Start);
+                    image.set_margin_top(2);
+                    image.set_margin_bottom(2);
+                    row.append(&image);
+                }
+            }
             posts_list.insert(&row, 0); // Insert at the top of the list
         }
     });
@@ -279,4 +311,40 @@ async fn send_nostr_message(
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     client.disconnect().await?;
     Ok(())
+}
+
+fn get_images_from_event(event: &Event, urls: Vec<String>) -> Option<Vec<String>> {
+    let mut images = Vec::new();
+    for tag in &event.tags {
+        if tag.as_vec()[0] == "imeta" || tag.as_vec()[0] == "r" {
+            let img_url = tag.as_vec()[1].strip_prefix("url ");
+            images.push(img_url?.to_string());
+        }
+        println!("as vec: {}", serde_json::to_value(tag.as_vec()).unwrap());
+    }
+
+    if !urls.is_empty() {
+        for url in urls {
+            images.push(url);
+        }
+    }
+    if images.is_empty() {
+        None
+    } else {
+        Some(images)
+    }
+}
+
+// This regex function should return every occurrence of an url of an image as a Vector and also delete it from
+// the original String.
+fn extract_and_remove_image_urls(s: &str) -> (Vec<String>, String) {
+    let re = Regex::new(r"(http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+(?:\/[\w\-._~:/?#\[\]@!\$&'\(\)\*\+,;=]*)?\.(png|jpg|jpeg|gif|svg)").unwrap();
+    let mut urls = Vec::new();
+    let mut result = s.to_string();
+    for mat in re.find_iter(s) {
+        urls.push(mat.as_str().to_string());
+        result = result.replace(mat.as_str(), "");
+    }
+
+    (urls, result)
 }
