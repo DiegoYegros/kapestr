@@ -1,0 +1,40 @@
+using Gtk 4.0;
+
+template $Post : Box {
+ Box {
+  orientation: vertical; // Ensure the Box is vertical
+  spacing: 8;
+  vexpand: true; // Allow the Box to expand vertically
+  hexpand: false;
+  Box {
+    Label author_name {
+      label: _("A nasome example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it should look like, text should be trimmedme");
+      wrap: true;
+
+      styles [
+        "heading"
+      ]
+    }
+    Label post_time {
+      label: _("25m");
+
+      styles [
+        "dim-label"
+      ]
+    }
+  }
+
+  Label content {
+    label: _("This is some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it sis is some example text. This is how it should look like, text should be trimmed.");
+    wrap: true;
+    xalign: 0;
+    vexpand: true;
+    halign: start;
+    valign: start;
+    max-width-chars: 50;
+    styles [
+      "content-label"
+    ]
+  }
+}
+}

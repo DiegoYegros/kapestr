@@ -1,0 +1,79 @@
+using Gtk 4.0;
+using Adw 1;
+template $MainWindow : Adw.ApplicationWindow {
+  title: "Kapestr";
+  default-width: 360;
+  default-height: 600;
+
+  Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      [end]
+      MenuButton main_menu_button {
+        icon-name: "open-menu-symbolic";
+        menu-model: primary_menu;
+      }
+
+      title-widget: Adw.ViewSwitcher {
+        policy: wide;
+        stack: main_stack;
+      };
+    }
+
+    content: Adw.ViewStack main_stack {
+      vexpand: true;
+
+      Adw.ViewStackPage {
+        name: "for_you";
+        title: "For You";
+        icon-name: "emblem-favorite-symbolic";
+
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
+          vexpand: true;
+          child: Adw.Clamp {
+            maximum-size: 500;
+
+            child: Adw.PreferencesGroup post_template {
+              // $Post post {} this should be replaced with actual definitions in Rust
+            };
+          };
+        };
+      }
+
+      Adw.ViewStackPage {
+        name: "following";
+        title: "Following";
+        icon-name: "user-bookmarks-symbolic";
+
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
+
+          child: Adw.Clamp {
+            maximum-size: 500;
+
+            child: Adw.StatusPage {
+              title: "Following";
+              description: "Content for the Following tab goes here";
+              icon-name: "user-bookmarks-symbolic";
+            };
+          };
+        };
+      }
+    };
+  }
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: "Preferences";
+      action: "app.preferences";
+    }
+
+    item {
+      label: "About Kapestr";
+      action: "app.about";
+    }
+  }
+}

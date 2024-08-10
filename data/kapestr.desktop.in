@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Kapestr
+Comment=A Native Client for the nostr protocol.
+Type=Application
+Exec=kapestr
+Terminal=false
+Categories=GNOME;GTK;Network;Development
+# Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+Keywords=Gnome;GTK;HTTP;REST;
+# Translators: Do NOT translate or transliterate this text (this is an icon file name)!
+Icon=@app_id@
+StartupNotify=true
+

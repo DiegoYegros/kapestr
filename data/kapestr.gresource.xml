@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+	<gresource prefix="/py/com/kapestr">
+		<file alias="bell-outline-symbolic.svg">icons/bell-outline-symbolic.svg</file>
+		<file alias="check-plain-symbolic.svg">icons/check-plain-symbolic.svg</file>
+		<file alias="clock-alt-symbolic.svg">icons/clock-alt-symbolic.svg</file>
+		<file alias="person-symbolic.svg">icons/person-symbolic.svg</file>
+		<file alias="main_window.ui" compressed="true">ui/main_window.ui</file>
+		<file alias="post.ui" compressed="true">ui/post.ui</file>
+	</gresource>
+</gresources>

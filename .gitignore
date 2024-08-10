@@ -1,2 +1,4 @@
 /target
+/subprojects/blueprint-compiler
+/target
 *.jpg

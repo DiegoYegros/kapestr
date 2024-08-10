@@ -1,0 +1,15 @@
+<schemalist>
+	<schema id="py.com.kapestr" path="/py/com/kapestr/">
+		<key name="username" type="s">
+			<default>'default_user'</default>
+			<summary>Username</summary>
+			<description>The username for the nostr client.</description>
+		</key>
+		<key name="show-notifications" type="b">
+			<default>false</default>
+			<summary>Show Notifications</summary>
+			<description>Whether to show notifications for new messages.</description>
+		</key>
+	</schema>
+</schemalist>
+
