@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use nostr_sdk::{Client, Keys, PublicKey};
+use secp256k1::XOnlyPublicKey;
 
 use crate::config::{self, APP_ID, BASE_ID};
 use crate::services::PostFetchService;
@@ -10,7 +12,6 @@ use gio::subclass::prelude::ObjectSubclassIsExt;
 use gtk::gio::{self, ActionEntryBuilder, Settings};
 use gtk::glib;
 use gtk4 as gtk;
-use nostr_sdk::{Client, Keys};
 use tokio::runtime::Runtime;
 
 mod imp {
@@ -123,18 +124,28 @@ impl KapestrApplication {
         let client = Arc::clone(self.imp().client.get().expect("Client not initialized"));
         let (service, mut receiver) = PostFetchService::new((*client).clone());
 
+        println!("Setting up post fetch service");
+
+        // Spawn the service in a separate thread
         std::thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(async {
-                service.start().await;
+                println!("Starting post fetch service");
+                if let Err(e) = service.start().await {
+                    eprintln!("Post fetch service error: {:?}", e);
+                }
+                println!("Post fetch service ended unexpectedly");
             });
         });
 
+        // Handle received events in the main thread
         glib::spawn_future_local(glib::clone!(@weak window => async move {
-            while let Some(event) = receiver.recv().await {
-                println!("got new event");
-                                    PostFetchService::add_post_to_ui(&window, &event);
+            println!("Waiting for events");
+            while let Some((event, display_name)) = receiver.recv().await {
+                println!("Received event: {:?}", event.kind);
+                PostFetchService::add_post_to_ui(&window, &event, &display_name).await;
             }
+            println!("Event loop ended unexpectedly");
         }));
     }
 }

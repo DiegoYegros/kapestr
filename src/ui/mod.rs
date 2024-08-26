@@ -18,7 +18,6 @@ pub fn init_data_dir() {
         let mut xdg_final_dirs = vec![datadir];
         xdg_final_dirs.extend(xdg_data_dirs);
         let xdg_data_dir = std::env::join_paths(&xdg_final_dirs).unwrap();
-        std::env::set_var("XDG_DATA_DIRS", xdg_data_dir);
     }
 }
 
