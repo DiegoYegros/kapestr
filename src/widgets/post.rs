@@ -3,6 +3,8 @@ use gio::glib::Object;
 use gtk4::glib;
 use gtk4::CompositeTemplate;
 use nostr_sdk::Event;
+use gtk4::pango::WrapMode;
+use adw::prelude::*;
 mod imp {
     use super::*;
     #[derive(Debug, Default, CompositeTemplate)]
@@ -38,7 +40,10 @@ mod imp {
     impl ObjectImpl for Post {
         fn constructed(&self) {
             self.parent_constructed();
-            self.parent_compute_expand(&mut false, &mut false);
+            self.obj().set_width_request(500);
+            self.content.set_wrap(true);
+            self.content.set_wrap_mode(gtk4::pango::WrapMode::WordChar);
+            self.obj().set_hexpand(false);
         }
     }
     impl WidgetImpl for Post {}
@@ -60,6 +65,7 @@ impl Post {
         imp.author_name.set_label(author);
         imp.post_time.set_label(time);
         imp.content.set_label(post_content);
+        imp.content.set_hexpand(false);
     }
 
     pub fn new_from_event(_event: &Event) -> Self {
